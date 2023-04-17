@@ -11,6 +11,7 @@ For the time being, Spring Boot based. Can be compiled with GraalVM for immediat
 
 ### Roadmap
 - Improve error handling
+- Better server logging
 - Make server non-blocking (could use Spring Webflux, but will probably rewrite in Go for less memory and CPU usage and ease of distribution)
 - Make it more configurable (Default port is 3287, can't be changed. Defaul destination folder for files sent with EasyTransfer is the Downloads folder, can't be changed).
 - As features grow, consider adding tests (not relevant now)
