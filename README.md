@@ -42,3 +42,4 @@ You can find pre-built binaries for Windows amd64 and Linux amd64 (built on WSL)
 - Make a GUI version
 - Add integrity validation to the files that are being sent
 - Add better error handling
+- Merge server and client into one binary
