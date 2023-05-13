@@ -58,8 +58,6 @@ func sendFile(filePath string, addr string, chunkSize int64) {
 
 		checksum := md5.Sum(fileContents[:n])
 
-		fileContents[5] = 5
-
 		err = binary.Write(conn, binary.LittleEndian, fileContents[:n])
 		err = binary.Write(conn, binary.LittleEndian, checksum)
 		if err != nil {
