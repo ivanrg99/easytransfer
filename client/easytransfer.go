@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/md5"
 	"encoding/binary"
 	"flag"
 	"fmt"
@@ -45,6 +46,7 @@ func sendFile(filePath string, addr string, chunkSize int64) {
 	// Start streaming file in chunks of 50MB
 	fileContents := make([]byte, chunkSize*1048576)
 	var totalRead int64
+	checkSumAck := make([]byte, 1)
 
 	for {
 		n, err := f.Read(fileContents)
@@ -54,10 +56,22 @@ func sendFile(filePath string, addr string, chunkSize int64) {
 		totalRead += int64(n)
 		log.Printf("File [%s]\n\t| %.2f%%\n", filePath, (float64(totalRead)/float64(info.Size()))*100.0)
 
+		checksum := md5.Sum(fileContents[:n])
+
+		fileContents[5] = 5
+
 		err = binary.Write(conn, binary.LittleEndian, fileContents[:n])
+		err = binary.Write(conn, binary.LittleEndian, checksum)
 		if err != nil {
 			log.Panicf("Failed to write file contents of [%s] to: %s\n", filePath, addr)
 		}
+
+		// Check if checksum was OK
+		conn.Read(checkSumAck)
+		if checkSumAck[0] != 'y' {
+			log.Panicln("Wrong checksum")
+		}
+
 		if totalRead == info.Size() {
 			log.Printf("File [%s] DONE\n", filePath)
 			break

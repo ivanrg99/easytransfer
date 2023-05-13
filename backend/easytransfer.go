@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/md5"
 	"encoding/binary"
 	"flag"
 	"fmt"
@@ -65,6 +66,7 @@ func handleFile(conn net.Conn, dest string, chunkSize int64) {
 	// Get file contents (stream 50MB)
 	fileContents := make([]byte, chunkSize*1048576)
 	var totalRead int64
+	checkSumChunk := make([]byte, md5.Size)
 	for {
 		n, err := conn.Read(fileContents)
 		if err != nil {
@@ -73,6 +75,16 @@ func handleFile(conn net.Conn, dest string, chunkSize int64) {
 
 		totalRead += int64(n)
 		log.Printf("File [%s] \n\t| %.2f%%", fileName, (float64(totalRead)/float64(size))*100.0)
+
+		checksum := md5.Sum(fileContents[:n])
+		conn.Read(checkSumChunk)
+
+		if !areCheckSumsEqual(checksum, checkSumChunk) {
+			conn.Write([]byte("n"))
+			log.Panicln("Checksum error")
+		}
+
+		conn.Write([]byte("y"))
 
 		// TODO! Might handle this later
 		_, err = f.Write(fileContents[:n])
@@ -85,6 +97,15 @@ func handleFile(conn net.Conn, dest string, chunkSize int64) {
 	}
 	log.Printf("File [%s] DONE\n", fileName)
 	conn.Write([]byte("ok"))
+}
+
+func areCheckSumsEqual(a [md5.Size]byte, b []byte) bool {
+	for i := 0; i < md5.Size; i++ {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func main() {
