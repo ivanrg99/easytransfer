@@ -65,17 +65,26 @@ func handleFile(conn net.Conn, dest string, chunkSize int64) {
 	// Get file contents (stream 50MB)
 	fileContents := make([]byte, chunkSize*1048576)
 	var totalRead int64
+	var totalBuffer int
 	for {
-		n, err := conn.Read(fileContents)
-		if err != nil {
-			log.Panicf("Could not read file contents for file [%s]\n", fileName)
+		for totalBuffer < cap(fileContents) {
+			n, err := conn.Read(fileContents[totalBuffer:])
+			if err != nil {
+				if err != io.EOF {
+					log.Panicf("Could not read file contents for file [%s]\n", fileName)
+				}
+			}
+			totalBuffer += n
+			totalRead += int64(n)
+			if totalRead == size {
+				break
+			}
 		}
-
-		totalRead += int64(n)
+		totalBuffer = 0
 		log.Printf("File [%s] \n\t| %.2f%%", fileName, (float64(totalRead)/float64(size))*100.0)
 
 		// TODO! Might handle this later
-		_, err = f.Write(fileContents[:n])
+		_, err = f.Write(fileContents)
 		if err != nil {
 			log.Panicf("Could not write file contents for file [%s]\n", fileName)
 		}
@@ -89,10 +98,10 @@ func handleFile(conn net.Conn, dest string, chunkSize int64) {
 
 func main() {
 	// Get address
-	addr := flag.String("address", "localhost:3287", "Address:Port at which the server will bind")
+	addr := flag.String("address", "192.168.1.134:3287", "Address:Port at which the server will bind")
 
 	// Set buffer size for streaming
-	chunkSize := flag.Int64("chunk", 50, "Size in MB of chunks size to be used as the streaming buffer")
+	chunkSize := flag.Int64("chunk", 100, "Size in MB of chunks size to be used as the streaming buffer")
 
 	// Get destination folder for this run
 	dest, err := os.UserHomeDir()
