@@ -10,16 +10,23 @@ import (
 )
 
 func sendFile(filePath string, addr string, chunkSize int64) {
+	// Get file details
+	f, err := os.Open(filePath)
+	defer f.Close()
+	if err != nil {
+		log.Fatalf("Failed to open file: %s\n", filePath)
+	}
+
+	info, _ := f.Stat()
+	if info.IsDir() {
+		log.Fatalf("%s is a directory, not a file!", filePath)
+	}
+
 	// Connect to server
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		log.Fatalf("Failed to connect to: %s\n", addr)
 	}
-
-	// Get file details
-	f, _ := os.Open(filePath)
-	defer f.Close()
-	info, _ := f.Stat()
 
 	// File format is:
 	// 64 bits: File size = Z
