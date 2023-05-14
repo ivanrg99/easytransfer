@@ -65,9 +65,13 @@ func handleFile(conn net.Conn, dest string, chunkSize int64) {
 	// Get file contents (stream 50MB)
 	fileContents := make([]byte, chunkSize*1048576)
 	var totalRead int64
+	var totalWritten int64
 	var totalBuffer int
-	for {
+
+	for totalWritten < size {
+		fmt.Printf("Buffer CAP: %d\n", cap(fileContents))
 		for totalBuffer < cap(fileContents) {
+			log.Println("Reading")
 			n, err := conn.Read(fileContents[totalBuffer:])
 			if err != nil {
 				if err != io.EOF {
@@ -77,28 +81,45 @@ func handleFile(conn net.Conn, dest string, chunkSize int64) {
 			totalBuffer += n
 			totalRead += int64(n)
 			if totalRead == size {
+				log.Println("Read everything!")
 				break
 			}
 		}
+		log.Println("Done reading. Buffer should be full")
+		totalBufferLimit := totalBuffer
 		totalBuffer = 0
+
 		log.Printf("File [%s] \n\t| %.2f%%", fileName, (float64(totalRead)/float64(size))*100.0)
 
-		// TODO! Might handle this later
-		_, err = f.Write(fileContents)
-		if err != nil {
-			log.Panicf("Could not write file contents for file [%s]\n", fileName)
+		for totalBuffer < cap(fileContents) {
+			log.Println("Writing...")
+			n, err := f.Write(fileContents[totalBuffer:totalBufferLimit])
+			fmt.Printf("Current written N: %d\n", n/1048576)
+			totalBuffer += n
+			totalWritten += int64(n)
+			if err != nil {
+				log.Panicf("Could not write file contents for file [%s]\n", fileName)
+			}
+			if totalWritten == size {
+				log.Println("Wrote everything!")
+				break
+			}
+			fmt.Printf("Total written: %d\n", totalWritten/1048576)
 		}
-		if totalRead == size {
-			break
-		}
+		log.Println("Done writing. Buffer should be full")
+		totalBuffer = 0
+		fmt.Printf("Total read: %d\n", totalRead/1048576)
+		fmt.Printf("Total written: %d\n", totalWritten/1048576)
+		fmt.Println("Redoing loop...")
 	}
+	fmt.Println("DONE. Sending ACK...")
 	log.Printf("File [%s] DONE\n", fileName)
 	conn.Write([]byte("ok"))
 }
 
 func main() {
 	// Get address
-	addr := flag.String("address", "192.168.1.134:3287", "Address:Port at which the server will bind")
+	addr := flag.String("address", "192.168.1.133:3287", "Address:Port at which the server will bind")
 
 	// Set buffer size for streaming
 	chunkSize := flag.Int64("chunk", 100, "Size in MB of chunks size to be used as the streaming buffer")
