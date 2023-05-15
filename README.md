@@ -43,3 +43,4 @@ You can find pre-built binaries for Windows amd64 and Linux amd64 (built on WSL)
 - Add integrity validation to the files that are being sent
 - Add better error handling
 - Merge server and client into one binary
+- Try to make it faster (maybe run in paralel reading to the buffer and writing to the file)
