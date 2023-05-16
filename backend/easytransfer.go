@@ -119,7 +119,7 @@ func handleFile(conn net.Conn, dest string, chunkSize int64) {
 
 func main() {
 	// Get address
-	addr := flag.String("address", "192.168.1.133:3287", "Address:Port at which the server will bind")
+	addr := flag.String("address", "192.168.1.134:3287", "Address:Port at which the server will bind")
 
 	// Set buffer size for streaming
 	chunkSize := flag.Int64("chunk", 100, "Size in MB of chunks size to be used as the streaming buffer")
