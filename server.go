@@ -49,7 +49,7 @@ func NewFileServer(conn net.Conn, dest string, chunkSize int) *FileServer {
 	return &FileServer{
 		conn:         conn,
 		dest:         dest,
-		fileContents: make([]byte, chunkSize),
+		fileContents: make([]byte, chunkSize*toBytes),
 		info: FileInfo{
 			fileSize: 0,
 			nameSize: 0,
