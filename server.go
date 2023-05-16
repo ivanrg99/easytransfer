@@ -50,6 +50,11 @@ func NewFileServer(conn net.Conn, dest string, chunkSize int) *FileServer {
 		conn:         conn,
 		dest:         dest,
 		fileContents: make([]byte, chunkSize),
+		info: FileInfo{
+			fileSize: 0,
+			nameSize: 0,
+			fileName: "",
+		},
 	}
 }
 
@@ -153,7 +158,6 @@ func (fs *FileServer) parseBody() {
 
 		for totalBuffer < cap(fs.fileContents) {
 			n, err := fs.file.Write(fs.fileContents[totalBuffer:totalBufferLimit])
-			fmt.Printf("Current written N: %d\n", n/1048576)
 			totalBuffer += n
 			totalWritten += n
 			if err != nil {

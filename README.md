@@ -38,7 +38,7 @@ You can find pre-built binaries for Windows amd64 and Linux amd64 (built on WSL)
 # Roadmap
 - Make easytransfer a library
 - Make a GUI version
-- Add better error handling
+- Add better error handling (timeouts when writing to server for ex)
 - Add documentation and tests
 - Cleanup code a bit more
 - Check in header that both client and server have the same chunk size
