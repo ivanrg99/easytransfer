@@ -32,8 +32,8 @@ func StartServer(f *flags) {
 }
 
 type FileInfo struct {
-	fileSize int
-	nameSize int
+	fileSize int64
+	nameSize int64
 	fileName string
 }
 
@@ -133,8 +133,8 @@ func (fs *FileServer) HandleFile() {
 // Make this into a struct method for a new buffer struct (maybe)
 func (fs *FileServer) parseBody() {
 	// Get file contents
-	var totalRead int
-	var totalWritten int
+	var totalRead int64
+	var totalWritten int64
 	var totalBuffer int
 
 	for totalWritten < fs.info.fileSize {
@@ -146,7 +146,7 @@ func (fs *FileServer) parseBody() {
 				}
 			}
 			totalBuffer += n
-			totalRead += n
+			totalRead += int64(n)
 			if totalRead == fs.info.fileSize {
 				break
 			}
@@ -159,7 +159,7 @@ func (fs *FileServer) parseBody() {
 		for totalBuffer < cap(fs.fileContents) {
 			n, err := fs.file.Write(fs.fileContents[totalBuffer:totalBufferLimit])
 			totalBuffer += n
-			totalWritten += n
+			totalWritten += int64(n)
 			if err != nil {
 				log.Panicf("Could not write file contents for file [%s]\n", fs.info.fileName)
 			}
