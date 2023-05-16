@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+const toBytes = 1048576
+
 type flags struct {
 	addr       *string
 	chunkSize  *int
@@ -13,7 +15,7 @@ type flags struct {
 	isServer   *bool
 }
 
-func main() {
+func parseFlags() flags {
 	flags := flags{}
 	flags.isServer = flag.Bool("server", false, "Start easytransfer in server mode. If not, it will start as a client")
 
@@ -34,9 +36,14 @@ func main() {
 
 	flag.Parse()
 
+	return flags
+}
+
+func main() {
+	flags := parseFlags()
 	if *flags.isServer {
-		startServer(&flags)
+		StartServer(&flags)
 	} else {
-		startClient(&flags)
+		StartClient(&flags)
 	}
 }

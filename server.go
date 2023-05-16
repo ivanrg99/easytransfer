@@ -62,7 +62,7 @@ func handleFile(conn net.Conn, dest string, chunkSize int) {
 	defer f.Close()
 
 	// Get file contents (stream 50MB)
-	fileContents := make([]byte, chunkSize*1048576)
+	fileContents := make([]byte, chunkSize*toBytes)
 	var totalRead int64
 	var totalWritten int64
 	var totalBuffer int
@@ -113,10 +113,10 @@ func handleFile(conn net.Conn, dest string, chunkSize int) {
 	}
 	fmt.Println("DONE. Sending ACK...")
 	log.Printf("File [%s] DONE\n", fileName)
-	conn.Write([]byte("ok"))
+	conn.Write([]byte("y"))
 }
 
-func startServer(f *flags) {
+func StartServer(f *flags) {
 	// Start listening
 	l, err := net.Listen("tcp", *f.addr)
 	if err != nil {
