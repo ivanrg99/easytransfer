@@ -40,3 +40,5 @@ You can find pre-built binaries for Windows amd64 and Linux amd64 (built on WSL)
 - Make a GUI version
 - Add better error handling
 - Add documentation and tests
+- Cleanup code a bit more
+- Check in header that both client and server have the same chunk size
