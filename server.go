@@ -59,8 +59,8 @@ func NewFileServer(conn net.Conn, dest string, chunkSize int) *FileServer {
 }
 
 func (fs *FileServer) Close() {
-	fs.file.Close()
-	fs.conn.Close()
+	_ = fs.file.Close()
+	_ = fs.conn.Close()
 }
 
 func (fs *FileServer) fetchFileInfoSizes() {
@@ -126,6 +126,7 @@ func (fs *FileServer) HandleFile() {
 			fmt.Println("TERMINATED READING FILE")
 		}
 	}()
+	defer fs.Close()
 
 	fs.parseHeader()
 	fs.parseBody()
