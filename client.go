@@ -29,6 +29,7 @@ func (fc *FileClient) SendFile() {
 
 	fc.sendHeader()
 	fc.sendBody()
+	fc.waitForAck()
 }
 
 func (fc *FileClient) Close() {
@@ -83,9 +84,8 @@ func (fc *FileClient) sendHeader() {
 }
 
 func (fc *FileClient) sendBody() {
-	// Start streaming file in chunks of 50MB
+	// Start streaming file in chunks
 	var totalRead int64
-
 	for {
 		n, err := fc.f.Read(fc.fileContents)
 		if err != nil {
@@ -94,7 +94,9 @@ func (fc *FileClient) sendBody() {
 		totalRead += int64(n)
 		log.Printf("File [%s]\n\t| %.2f%%\n", fc.info.Name(), (float64(totalRead)/float64(fc.info.Size()))*100.0)
 
+		log.Println("Starting to write to connection")
 		err = binary.Write(fc.conn, binary.LittleEndian, fc.fileContents[:n])
+		log.Println("Done writing")
 		if err != nil {
 			log.Panicf("Failed to write file contents of [%s] to server\n", fc.info.Name())
 		}
@@ -103,6 +105,9 @@ func (fc *FileClient) sendBody() {
 			break
 		}
 	}
+}
+
+func (fc *FileClient) waitForAck() {
 	ack := make([]byte, 1)
 	_, err := fc.conn.Read(ack)
 	if err != nil {

@@ -23,7 +23,7 @@ func parseFlags() flags {
 	flags.addr = flag.String("address", "localhost:3287", "Address:Port at which the server will bind to / client will connect to")
 
 	// Set buffer size for streaming
-	flags.chunkSize = flag.Int("chunk", 100, "Size in MB of chunks size to be used as the streaming buffer")
+	flags.chunkSize = flag.Int("chunk", 100, "Size in MB of chunks size to be used as the streaming buffer (bigger might improve performance)")
 
 	// Get destination folder for this run
 	dest, err := os.UserHomeDir()
