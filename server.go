@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -11,7 +10,7 @@ import (
 	"os"
 )
 
-func handleFile(conn net.Conn, dest string, chunkSize int64) {
+func handleFile(conn net.Conn, dest string, chunkSize int) {
 	defer conn.Close()
 	defer func() {
 		if r := recover(); r != nil {
@@ -117,31 +116,14 @@ func handleFile(conn net.Conn, dest string, chunkSize int64) {
 	conn.Write([]byte("ok"))
 }
 
-func main() {
-	// Get address
-	addr := flag.String("address", "192.168.1.134:3287", "Address:Port at which the server will bind")
-
-	// Set buffer size for streaming
-	chunkSize := flag.Int64("chunk", 100, "Size in MB of chunks size to be used as the streaming buffer")
-
-	// Get destination folder for this run
-	dest, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatal(err)
-	}
-	dest = dest + string(os.PathSeparator) + "Downloads"
-
-	folder := flag.String("destination", dest, "Destination folder where the files will be written to")
-
-	flag.Parse()
-
+func startServer(f *flags) {
 	// Start listening
-	l, err := net.Listen("tcp", *addr)
+	l, err := net.Listen("tcp", *f.addr)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to bind to address: ", *f.addr)
 	}
 
-	fmt.Printf("EasyTransfer running on %s with streaming size of %dMB, destination folder: %s   | ...\n", *addr, *chunkSize, *folder)
+	fmt.Printf("EasyTransfer running on %s with streaming size of %dMB, destination folder: %s   | ...\n", *f.addr, *f.chunkSize, *f.destFolder)
 
 	// Accept concurrent connections
 	for {
@@ -149,6 +131,6 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		go handleFile(conn, *folder, *chunkSize)
+		go handleFile(conn, *f.destFolder, *f.chunkSize)
 	}
 }

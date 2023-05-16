@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-func sendFile(filePath string, addr string, chunkSize int64) {
+func sendFile(filePath string, addr string, chunkSize int) {
 	// Get file details
 	f, err := os.Open(filePath)
 	defer f.Close()
@@ -77,12 +77,7 @@ func sendFile(filePath string, addr string, chunkSize int64) {
 	}
 }
 
-func main() {
-	// Get address and streaming chunk size
-	addr := flag.String("address", "localhost:3287", "Address:Port at which the client will try to connect to send the files")
-	chunkSize := flag.Int64("chunk", 50, "Size in MB of chunks size to be streamed to the address")
-
-	flag.Parse()
+func startClient(f *flags) {
 	filenames := flag.Args()
 
 	if len(filenames) == 0 {
@@ -93,7 +88,7 @@ func main() {
 	done := make(chan bool)
 	for _, filename := range filenames {
 		go func(filename string) {
-			sendFile(filename, *addr, *chunkSize)
+			sendFile(filename, *f.addr, *f.chunkSize)
 			done <- true
 		}(filename)
 	}
