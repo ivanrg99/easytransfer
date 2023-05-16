@@ -10,6 +10,27 @@ import (
 	"time"
 )
 
+func StartClient(f *flags) {
+	filenames := flag.Args()
+
+	if len(filenames) == 0 {
+		fmt.Println("Error: At least one filename must be provided")
+		os.Exit(1)
+	}
+
+	done := make(chan bool)
+	for _, filename := range filenames {
+		go func(filename string) {
+			fc := NewFileClient(filename, *f.addr, *f.chunkSize)
+			fc.SendFile()
+			done <- true
+		}(filename)
+	}
+	for i := 0; i < len(filenames); i++ {
+		<-done
+	}
+}
+
 type FileClient struct {
 	conn         net.Conn
 	info         os.FileInfo
@@ -117,25 +138,4 @@ func (fc *FileClient) waitForAck() {
 		log.Panicln("Server did not ack")
 	}
 	log.Printf("File [%s] DONE\n", fc.info.Name())
-}
-
-func StartClient(f *flags) {
-	filenames := flag.Args()
-
-	if len(filenames) == 0 {
-		fmt.Println("Error: At least one filename must be provided")
-		os.Exit(1)
-	}
-
-	done := make(chan bool)
-	for _, filename := range filenames {
-		go func(filename string) {
-			fc := NewFileClient(filename, *f.addr, *f.chunkSize)
-			fc.SendFile()
-			done <- true
-		}(filename)
-	}
-	for i := 0; i < len(filenames); i++ {
-		<-done
-	}
 }

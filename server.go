@@ -10,112 +10,6 @@ import (
 	"os"
 )
 
-func handleFile(conn net.Conn, dest string, chunkSize int) {
-	defer conn.Close()
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("TERMINATED READING FILE")
-		}
-	}()
-	// File format is:
-	// 64 bits: File size = Z
-	// 64 bits: Filename size = N
-	// N  bits: Filename string
-	// Z  bits: File contents
-	// TODO! Also send checksum and check it
-
-	log.Println("Connection established...")
-
-	// Read sizes
-	var size int64
-	var nameSize int64
-	err := binary.Read(conn, binary.LittleEndian, &size)
-	if err != nil {
-		log.Panicln("Could not read file size from incoming connection")
-	}
-	err = binary.Read(conn, binary.LittleEndian, &nameSize)
-	if err != nil {
-		log.Panicln("Could not read fileName size from incoming connection")
-	}
-
-	// Get fileName
-	fileName := new(bytes.Buffer)
-	for {
-		n, err := io.CopyN(fileName, conn, nameSize)
-		if err != nil {
-			log.Panicln("Could not read fileName from incoming connection")
-		}
-		if n == nameSize {
-			break
-		}
-	}
-
-	log.Printf("Receiving file [%s]\n\t| Size: %.2fMB\n", fileName, float64(size)/1_000_000)
-
-	// Create destination file
-	fName := dest + string(os.PathSeparator) + fileName.String()
-
-	f, err := os.Create(fName)
-	if err != nil {
-		log.Panicln(err)
-	}
-	defer f.Close()
-
-	// Get file contents (stream 50MB)
-	fileContents := make([]byte, chunkSize*toBytes)
-	var totalRead int64
-	var totalWritten int64
-	var totalBuffer int
-
-	for totalWritten < size {
-		fmt.Printf("Buffer CAP: %d\n", cap(fileContents))
-		for totalBuffer < cap(fileContents) {
-			log.Println("Reading")
-			n, err := conn.Read(fileContents[totalBuffer:])
-			if err != nil {
-				if err != io.EOF {
-					log.Panicf("Could not read file contents for file [%s]\n", fileName)
-				}
-			}
-			totalBuffer += n
-			totalRead += int64(n)
-			if totalRead == size {
-				log.Println("Read everything!")
-				break
-			}
-		}
-		log.Println("Done reading. Buffer should be full")
-		totalBufferLimit := totalBuffer
-		totalBuffer = 0
-
-		log.Printf("File [%s] \n\t| %.2f%%", fileName, (float64(totalRead)/float64(size))*100.0)
-
-		for totalBuffer < cap(fileContents) {
-			log.Println("Writing...")
-			n, err := f.Write(fileContents[totalBuffer:totalBufferLimit])
-			fmt.Printf("Current written N: %d\n", n/1048576)
-			totalBuffer += n
-			totalWritten += int64(n)
-			if err != nil {
-				log.Panicf("Could not write file contents for file [%s]\n", fileName)
-			}
-			if totalWritten == size {
-				log.Println("Wrote everything!")
-				break
-			}
-			fmt.Printf("Total written: %d\n", totalWritten/1048576)
-		}
-		log.Println("Done writing. Buffer should be full")
-		totalBuffer = 0
-		fmt.Printf("Total read: %d\n", totalRead/1048576)
-		fmt.Printf("Total written: %d\n", totalWritten/1048576)
-		fmt.Println("Redoing loop...")
-	}
-	fmt.Println("DONE. Sending ACK...")
-	log.Printf("File [%s] DONE\n", fileName)
-	conn.Write([]byte("y"))
-}
-
 func StartServer(f *flags) {
 	// Start listening
 	l, err := net.Listen("tcp", *f.addr)
@@ -123,14 +17,154 @@ func StartServer(f *flags) {
 		log.Fatal("Failed to bind to address: ", *f.addr)
 	}
 
-	fmt.Printf("EasyTransfer running on %s with streaming size of %dMB, destination folder: %s   | ...\n", *f.addr, *f.chunkSize, *f.destFolder)
+	fmt.Printf("EasyTransfer running on %s with chunk size of %dMB, destination folder: \"%s\"\t...\n", *f.addr, *f.chunkSize, *f.destFolder)
 
 	// Accept concurrent connections
 	for {
 		conn, err := l.Accept()
+		log.Println("Connection established...")
 		if err != nil {
 			log.Fatal(err)
 		}
-		go handleFile(conn, *f.destFolder, *f.chunkSize)
+		fs := NewFileServer(conn, *f.destFolder, *f.chunkSize)
+		go fs.HandleFile()
 	}
+}
+
+type FileInfo struct {
+	fileSize int
+	nameSize int
+	fileName string
+}
+
+type FileServer struct {
+	conn         net.Conn
+	dest         string
+	info         FileInfo
+	file         *os.File
+	fileContents []byte
+}
+
+func NewFileServer(conn net.Conn, dest string, chunkSize int) *FileServer {
+	return &FileServer{
+		conn:         conn,
+		dest:         dest,
+		fileContents: make([]byte, chunkSize),
+	}
+}
+
+func (fs *FileServer) Close() {
+	fs.file.Close()
+	fs.conn.Close()
+}
+
+func (fs *FileServer) fetchFileInfoSizes() {
+	// Read sizes
+	err := binary.Read(fs.conn, binary.LittleEndian, &fs.info.fileSize)
+	if err != nil {
+		log.Panicln("Could not read file size from incoming connection")
+	}
+	err = binary.Read(fs.conn, binary.LittleEndian, &fs.info.nameSize)
+	if err != nil {
+		log.Panicln("Could not read fileName size from incoming connection")
+	}
+}
+
+func (fs *FileServer) fetchFileInfoName() {
+	// Get fileName
+	fileName := new(bytes.Buffer)
+	for {
+		n, err := io.CopyN(fileName, fs.conn, int64(fs.info.nameSize))
+		if err != nil {
+			log.Panicln("Could not read fileName from incoming connection")
+		}
+		if n == int64(fs.info.nameSize) {
+			break
+		}
+	}
+}
+
+func (fs *FileServer) initFileInfo() {
+	fs.fetchFileInfoSizes()
+	fs.fetchFileInfoName()
+}
+
+func (fs *FileServer) createNewFile() {
+	// Create destination file
+	fName := fs.dest + string(os.PathSeparator) + fs.info.fileName
+
+	var err error
+	fs.file, err = os.Create(fName)
+	if err != nil {
+		log.Panicln("Could not create destination file in: ", fName)
+	}
+}
+
+func (fs *FileServer) parseHeader() {
+	// File format is:
+	// 64 bits: File size = Z
+	// 64 bits: Filename size = N
+	// N  bits: Filename string
+	// Z  bits: File contents
+
+	fs.initFileInfo()
+
+	log.Printf("Receiving file [%s]\n\t| Size: %.2fMB\n", fs.info.fileName, float64(fs.info.fileSize)/1_000_000)
+
+	fs.createNewFile()
+}
+
+func (fs *FileServer) HandleFile() {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("TERMINATED READING FILE")
+		}
+	}()
+
+	fs.parseHeader()
+	fs.parseBody()
+}
+
+// Make this into a struct method for a new buffer struct (maybe)
+func (fs *FileServer) parseBody() {
+	// Get file contents
+	var totalRead int
+	var totalWritten int
+	var totalBuffer int
+
+	for totalWritten < fs.info.fileSize {
+		for totalBuffer < cap(fs.fileContents) {
+			n, err := fs.conn.Read(fs.fileContents[totalBuffer:])
+			if err != nil {
+				if err != io.EOF {
+					log.Panicf("Could not read file contents for file [%s]\n", fs.info.fileName)
+				}
+			}
+			totalBuffer += n
+			totalRead += n
+			if totalRead == fs.info.fileSize {
+				break
+			}
+		}
+		totalBufferLimit := totalBuffer
+		totalBuffer = 0
+
+		log.Printf("File [%s] \n\t| %.2f%%", fs.info.fileName, (float64(totalRead)/float64(fs.info.fileSize))*100.0)
+
+		for totalBuffer < cap(fs.fileContents) {
+			n, err := fs.file.Write(fs.fileContents[totalBuffer:totalBufferLimit])
+			fmt.Printf("Current written N: %d\n", n/1048576)
+			totalBuffer += n
+			totalWritten += n
+			if err != nil {
+				log.Panicf("Could not write file contents for file [%s]\n", fs.info.fileName)
+			}
+			if totalWritten == fs.info.fileSize {
+				break
+			}
+		}
+		totalBuffer = 0
+	}
+	fs.conn.Write([]byte("y"))
+	log.Printf("File [%s] DONE\n", fs.info.fileName)
 }

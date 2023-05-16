@@ -5,11 +5,11 @@ Easily transfer and stream files in a network over TCP
 # Usage
 Start the server on localhost, port 8080, with a chunk size of 500MB and a destination folder of . (the current directory) 
 ```bash
-easytransfer_server -address localhost:8080 -chunk 500 -destination .
+easytransfer -serve -address localhost:8080 -chunk 500 -destination .
 ```
 To start the client and send the files to the address 192.168.10.87 and port 8080, with a chunk size of 500MB
 ```bash
-easytransfer_client -address 192.168.10.87:8080 -chunk 500 file1 file2 file3...
+easytransfer -address 192.168.10.87:8080 -chunk 500 file1 file2 file3...
 ```
 To get more help:
 ```bash
@@ -32,14 +32,11 @@ Just run
 ```bash
 go build .
 ```
-on the backend folder for the server binary, or the client folder for the client binary
-
 # Releases
 You can find pre-built binaries for Windows amd64 and Linux amd64 (built on WSL) on the releases page
 
 # Roadmap
 - Make easytransfer a library
 - Make a GUI version
-- Add integrity validation to the files that are being sent
 - Add better error handling
-- Merge server and client into one binary
+- Add documentation and tests
