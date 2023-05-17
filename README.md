@@ -2,6 +2,7 @@
 
 Easily transfer and stream files in a network over TCP
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/ivanrg99/easytransfer)](https://goreportcard.com/report/github.com/ivanrg99/easytransfer)
 # Usage
 Start the server on localhost, port 8080, with a chunk size of 500MB and a destination folder of . (the current directory) 
 ```bash
