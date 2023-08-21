@@ -37,8 +37,8 @@ go build .
 You can find pre-built binaries for Windows amd64 and Linux amd64 (built on WSL) on the releases page
 
 # Roadmap
-- Make easytransfer a library
-- Make a GUI version
+- Make a GUI version (already in the works)
+- Support sending folders
 - Add better error handling (timeouts when writing to server for ex)
 - Add documentation and tests
 - Add better progress report inside buffer reading (instead of 1 update per full buffer read)
