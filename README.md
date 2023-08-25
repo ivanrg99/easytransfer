@@ -38,9 +38,10 @@ You can find pre-built binaries for Windows amd64 and Linux amd64 (built on WSL)
 
 # Roadmap
 - Make a GUI version (already in the works)
-- Support sending folders
+- Support sending folders (add a recursive flag and apply it to a folder)
 - Add better error handling (timeouts when writing to server for ex)
 - Add documentation and tests
+- Create a man page
 - Add better progress report inside buffer reading (instead of 1 update per full buffer read)
-- Cleanup code a bit more
-- Check in header that both client and server have the same chunk size
+- Check in header that both client and server have the same chunk size (might not be needed, needs testing)
+- Make logging optional with a verbose flag
