@@ -1,6 +1,6 @@
 ![Easy Transfer](https://github.com/ivanrg99/easytransfer/assets/47028390/17705219-6164-4637-b162-0d1e01f77c3f)
 
-Easily transfer and stream files in a network over TCP
+Easily transfer both small and very large files over TCP with no dependencies
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/ivanrg99/easytransfer)](https://goreportcard.com/report/github.com/ivanrg99/easytransfer)
 # Usage
