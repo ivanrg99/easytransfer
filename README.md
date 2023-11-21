@@ -38,7 +38,7 @@ You can find pre-built binaries for Windows amd64 and Linux amd64 (built on WSL)
 
 # Roadmap
 - Make logs optional with verbose
-- Make mor UNIX-y in general
+- Make more UNIX-y in general
 - Man pages
 - Optional encryption
 - Ability to resume partial transfers
